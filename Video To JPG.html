@@ -1,0 +1,1010 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Frame Extractor Pro | By Filih</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.5.0/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 100%);
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            color: #00bfff;
+            text-shadow: 0 0 10px rgba(0, 191, 255, 0.5);
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #aaa;
+            font-size: 0.95rem;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .section {
+            background: rgba(30, 30, 30, 0.8);
+            border: 1px solid rgba(0, 191, 255, 0.3);
+            border-radius: 10px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .section h2 {
+            color: #00bfff;
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+        }
+
+        .preview-container {
+            background: #111;
+            border: 2px solid #333;
+            border-radius: 8px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column; /* Added for video/canvas stacking */
+            align-items: center;
+            justify-content: center;
+            min-height: 400px;
+            position: relative;
+        }
+        
+        /* Style untuk elemen video agar tersembunyi tapi tetap bisa diakses JS */
+        #videoPlayer {
+            width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            display: none; /* Sembunyikan player asli */
+        }
+
+        .preview-container canvas {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            transition: opacity 0.3s ease;
+        }
+
+        .preview-placeholder {
+            color: #666;
+            font-size: 1rem;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        .nav-controls {
+            display: flex;
+            gap: 5px;
+            margin-right: 15px;
+        }
+
+        .btn {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 191, 255, 0.3);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background: #0066cc;
+            color: white;
+        }
+        
+        .btn-info {
+            background: #ffaa00;
+            color: white;
+        }
+
+        .btn-success {
+            background: #00b33c;
+            color: white;
+        }
+
+        .btn-danger {
+            background: #cc0000;
+            color: white;
+        }
+
+        .btn-warning {
+            background: #ffa500;
+            color: black;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #00bfff;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .input-group input, .input-group select {
+            width: 100%;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(0, 191, 255, 0.3);
+            border-radius: 6px;
+            color: #fff;
+            font-size: 0.9rem;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        .input-group input:focus, .input-group select:focus {
+            outline: none;
+            border-color: #00bfff;
+            background: rgba(0, 191, 255, 0.1);
+        }
+
+        .slider {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: linear-gradient(to right, #0066cc, #00bfff);
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+            margin: 10px 0;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #00bfff;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(0, 191, 255, 0.5);
+        }
+
+        .slider::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #00bfff;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 0 10px rgba(0, 191, 255, 0.5);
+        }
+
+        .frame-info {
+            background: rgba(0, 191, 255, 0.1);
+            border-left: 3px solid #00bfff;
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            font-size: 0.9rem;
+        }
+
+        .status-message {
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-size: 0.9rem;
+            display: none;
+        }
+
+        .status-message.success {
+            background: rgba(0, 179, 60, 0.2);
+            border: 1px solid #00b33c;
+            color: #00ff00;
+            display: block;
+        }
+
+        .status-message.error {
+            background: rgba(204, 0, 0, 0.2);
+            border: 1px solid #cc0000;
+            color: #ff6666;
+            display: block;
+        }
+
+        .status-message.info {
+            background: rgba(0, 191, 255, 0.2);
+            border: 1px solid #00bfff;
+            color: #00bfff;
+            display: block;
+        }
+
+        .video-info {
+            background: rgba(0, 191, 255, 0.05);
+            border: 1px solid rgba(0, 191, 255, 0.2);
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            margin-bottom: 15px;
+        }
+
+        .video-info p {
+            margin-bottom: 6px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .video-info span {
+            color: #00bfff;
+        }
+
+        .range-inputs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .range-inputs-full {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .file-input-wrapper input[type="file"] {
+            display: none;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 25px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid rgba(0, 191, 255, 0.3);
+            margin-bottom: 10px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #0066cc, #00bfff);
+            width: 0%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: 600;
+            transition: width 0.3s ease;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            border: 3px solid rgba(0, 191, 255, 0.3);
+            border-top: 3px solid #00bfff;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎞 Video Frame Extractor Web | By Filih</h1>
+            <p>Ekstrak frame dari video dengan kontrol rentang dan fitur tambahan</p>
+        </div>
+
+        <div class="main-content">
+            <div class="section">
+                <h2>📤 Upload Video & Preview</h2>
+                
+                <div class="file-input-wrapper">
+                    <button class="btn btn-primary" onclick="document.getElementById('videoInput').click()">
+                        📂 Pilih Video
+                    </button>
+                    <input type="file" id="videoInput" accept="video/*">
+                </div>
+
+                <div id="loadingUpload" class="loading">
+                    <div class="spinner"></div>
+                    <p>Memproses video...</p>
+                </div>
+
+                <div id="statusMessage" class="status-message"></div>
+
+                <div id="videoInfo" class="video-info" style="display: none;">
+                    <p><span>File:</span> <span id="infoFile">-</span></p>
+                    <p><span>Durasi:</span> <span id="infoDuration">-</span>s</p>
+                    <p><span>FPS:</span> <span id="infoFps">-</span></p>
+                    <p><span>Total Frames:</span> <span id="infoTotalFrames">-</span></p>
+                </div>
+
+                <div class="preview-container">
+                    <video id="videoPlayer" controls></video>
+                    <canvas id="framePreview" style="display: none;"></canvas>
+                    <div class="preview-placeholder" id="previewPlaceholder">
+                        Upload video terlebih dahulu untuk melihat preview
+                    </div>
+                </div>
+                
+                <div class="controls" id="playbackControls" style="display: none; margin-top: 15px;">
+                    <button class="btn btn-info" id="playPauseBtn" onclick="togglePlayPause()">
+                        ▶️ Putar
+                    </button>
+                    <button class="btn btn-primary" onclick="seekFrame(-1)">
+                        ⏮ Frame Sebelumnya
+                    </button>
+                    <button class="btn btn-primary" onclick="seekFrame(1)">
+                        Frame Berikutnya ⏭
+                    </button>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>⚙️ Kontrol Frame Individual</h2>
+
+                <div class="frame-info" id="frameInfo" style="display: none;">
+                    Frame: <span id="currentFrame">0</span> / <span id="totalFrames">0</span>
+                </div>
+
+                <div id="sliderContainer" style="display: none;">
+                    <label>Navigasi Frame</label>
+                    <input type="range" id="frameSlider" class="slider" min="0" max="100">
+                </div>
+
+                <div class="controls" id="controlsTop" style="display: none;">
+                    <button class="btn btn-success" onclick="extractCurrentFrame()">
+                        💾 Ekstrak Frame
+                    </button>
+                    <button class="btn btn-primary" onclick="downloadFrame()">
+                        📥 Download Frame Ini
+                    </button>
+                </div>
+
+                <hr style="border: 1px solid rgba(0, 191, 255, 0.2); margin: 15px 0;">
+
+                <h2>📸 Batch Ekstrak</h2>
+
+                <div class="input-group">
+                    <label for="extractionMode">Mode Ekstraksi</label>
+                    <select id="extractionMode" onchange="toggleBatchInputs()">
+                        <option value="interval">Interval Frame (Setiap 10 frame)</option>
+                        <option value="range">Rentang Frame Dari (100 sampai 200)</option>
+                    </select>
+                </div>
+                
+                <div id="batchInputs">
+                    <div class="range-inputs" id="intervalInputs">
+                        <div class="input-group">
+                            <label>Interval Frame</label>
+                            <input type="number" id="intervalFrame" value="10" min="1">
+                        </div>
+                        <div class="input-group">
+                            <label>Total Frame Est.</label>
+                            <input type="number" id="totalExtract" value="0" min="0" disabled>
+                        </div>
+                    </div>
+                    
+                    <div class="range-inputs-full" id="rangeInputs" style="display: none;">
+                        <div class="input-group">
+                            <label>Frame Mulai</label>
+                            <input type="number" id="startFrame" value="0" min="0" oninput="updateEstimatedRangeFrames()">
+                        </div>
+                        <div class="input-group">
+                            <label>Frame Akhir</label>
+                            <input type="number" id="endFrame" value="0" min="0" oninput="updateEstimatedRangeFrames()">
+                        </div>
+                        <div class="input-group">
+                            <label>Interval Rentang</label>
+                            <input type="number" id="rangeInterval" value="1" min="1" oninput="updateEstimatedRangeFrames()">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="controls">
+                    <button class="btn btn-success" onclick="batchExtract()" id="batchBtn">
+                        📸 Mulai Ekstrak Batch
+                    </button>
+                    <button class="btn btn-danger" onclick="stopBatchExtract()" id="stopBatchBtn" disabled>
+                        ❌ Batalkan Proses
+                    </button>
+                </div>
+
+                <div id="progressContainer" style="display: none;">
+                    <label>Progress</label>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                    <p id="progressText" style="font-size: 0.9rem; color: #00bfff;">0%</p>
+                </div>
+
+                <div id="extractStatus" class="status-message"></div>
+                
+                <div class="controls">
+                     <button class="btn btn-danger" onclick="downloadAllFrames()" id="downloadBatchBtn" disabled>
+                        📦 Download Semua (ZIP)
+                    </button>
+                    <button class="btn btn-warning" onclick="clearExtractedFrames()" id="clearBatchBtn" disabled>
+                        🗑 Hapus Frame Extrak
+                    </button>
+                </div>
+
+                <hr style="border: 1px solid rgba(0, 191, 255, 0.2); margin: 15px 0;">
+
+                <h3 style="color: #00bfff; margin-bottom: 10px;">📋 Info</h3>
+                <p style="font-size: 0.85rem; color: #aaa; line-height: 1.6;">
+                    ✅ <strong>Standalone Mode:</strong> Tidak perlu server<br>
+                    ✅ <strong>Local Processing:</strong> Semua proses offline<br>
+                    ✅ <strong>Rentang Frame:</strong> Pilih Frame Mulai dan Frame Akhir untuk ekstraksi spesifik.<br>
+                    ℹ️ <strong>Note:</strong> Proses ekstraski frame terjadi di browser (mungkin lambat untuk video besar)
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let videoPlayer = document.getElementById('videoPlayer');
+        let canvas = document.getElementById('framePreview');
+        let ctx = canvas.getContext('2d');
+        let totalFrames = 0;
+        let currentFrameIndex = 0;
+        let videoFPS = 30; // Default FPS
+        let extractedFrames = [];
+        let isProcessing = false;
+        let videoFileName = 'extracted_frames';
+        let currentVideoUrl = null; // Track current video URL for cleanup
+        let frameSliderTimeout = null; // For debouncing slider changes
+        
+        // --- Event Listeners ---
+        document.getElementById('videoInput').addEventListener('change', handleVideoUpload);
+        document.getElementById('frameSlider').addEventListener('input', handleSliderChange);
+        document.getElementById('intervalFrame').addEventListener('input', updateEstimatedTotalFrames);
+        document.getElementById('rangeInterval').addEventListener('input', updateEstimatedRangeFrames); // Tambahan
+        document.getElementById('startFrame').addEventListener('input', updateEstimatedRangeFrames); // Tambahan
+        document.getElementById('endFrame').addEventListener('input', updateEstimatedRangeFrames); // Tambahan
+        
+        videoPlayer.addEventListener('seeked', updateCanvasFromVideo);
+        videoPlayer.addEventListener('timeupdate', updateFrameInfo);
+        videoPlayer.addEventListener('play', () => document.getElementById('playPauseBtn').textContent = '⏸ Jeda');
+        videoPlayer.addEventListener('pause', () => document.getElementById('playPauseBtn').textContent = '▶️ Putar');
+
+
+        // --- Utility Functions ---
+
+        function showMessage(message, type = 'info', timeout = 5000) {
+            const statusEl = document.getElementById('statusMessage');
+            statusEl.textContent = message;
+            statusEl.className = `status-message ${type}`;
+            clearTimeout(statusEl.timer);
+            statusEl.timer = setTimeout(() => {
+                statusEl.className = 'status-message';
+            }, timeout);
+        }
+
+        function showExtractMessage(message, type = 'info', timeout) {
+            const statusEl = document.getElementById('extractStatus');
+            statusEl.textContent = message;
+            statusEl.className = `status-message ${type}`;
+            if (timeout !== undefined) {
+                clearTimeout(statusEl.timer);
+                statusEl.timer = setTimeout(() => {
+                    statusEl.className = 'status-message';
+                }, timeout);
+            }
+        }
+        
+        function validateNumericInput(input, min, max) {
+            let value = parseInt(input.value) || min;
+            value = Math.max(min, Math.min(max, value));
+            input.value = value;
+            return value;
+        }
+
+        function updateEstimatedTotalFrames() {
+            const intervalInput = document.getElementById('intervalFrame');
+            const interval = validateNumericInput(intervalInput, 1, totalFrames);
+            const estimatedCount = Math.ceil(totalFrames / interval);
+            document.getElementById('totalExtract').value = isNaN(estimatedCount) ? 0 : estimatedCount;
+        }
+
+        // Fungsi baru untuk memperbarui perkiraan total frame pada mode rentang
+        function updateEstimatedRangeFrames() {
+            const mode = document.getElementById('extractionMode').value;
+            if (mode !== 'range') return;
+
+            const startInput = document.getElementById('startFrame');
+            const endInput = document.getElementById('endFrame');
+            const intervalInput = document.getElementById('rangeInterval');
+
+            let start = validateNumericInput(startInput, 0, totalFrames > 0 ? totalFrames - 1 : 0);
+            
+            // Hapus validasi end yang bergantung pada start
+            let maxFrame = totalFrames > 0 ? totalFrames - 1 : 0;
+            let end = parseInt(endInput.value) || 0;
+            end = Math.max(0, Math.min(end, maxFrame)); // Validasi end hanya berdasarkan total frame
+            endInput.value = end;
+
+            // Pastikan interval valid berdasarkan rentang yang dipilih
+            let maxInterval = Math.max(1, end - start + 1);
+            let interval = validateNumericInput(intervalInput, 1, maxInterval);
+
+            // Hitung jumlah frame yang akan diekstrak
+            let count = 0;
+            if (end >= start && interval > 0) {
+                count = Math.floor((end - start) / interval) + 1;
+            }
+            
+            document.getElementById('totalExtract').value = count;
+        }
+
+
+        // --- Video Handling ---
+
+        async function handleVideoUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            // Stop any ongoing process/playback
+            if (videoPlayer.src) URL.revokeObjectURL(videoPlayer.src);
+            videoPlayer.pause();
+            
+            document.getElementById('loadingUpload').style.display = 'block';
+            document.getElementById('downloadBatchBtn').disabled = true;
+            document.getElementById('clearBatchBtn').disabled = true;
+            document.getElementById('extractStatus').className = 'status-message';
+            extractedFrames = []; // Clear previous frames
+
+            videoFileName = file.name.substring(0, file.name.lastIndexOf('.')) || 'extracted_frames';
+
+            try {
+                // Cleanup previous video URL
+                if (currentVideoUrl) {
+                    URL.revokeObjectURL(currentVideoUrl);
+                }
+                
+                const url = URL.createObjectURL(file);
+                currentVideoUrl = url;
+                videoPlayer.src = url;
+
+                await new Promise((resolve, reject) => {
+                    videoPlayer.onloadedmetadata = resolve;
+                    videoPlayer.onerror = reject;
+                });
+                
+                // Try to detect actual FPS
+                try {
+                    await new Promise(resolve => {
+                        // Create a temporary video element for FPS detection
+                        const tempVideo = document.createElement('video');
+                        tempVideo.src = url;
+                        tempVideo.preload = 'metadata';
+                        tempVideo.onloadedmetadata = () => {
+                            const mediaInfo = tempVideo.mozDecodedFrames || tempVideo.webkitDecodedFrames;
+                            if (mediaInfo && tempVideo.duration) {
+                                videoFPS = Math.round(mediaInfo / tempVideo.duration);
+                            }
+                            resolve();
+                        };
+                        tempVideo.onerror = resolve; // Continue with default FPS on error
+                    });
+                } catch (e) {
+                    console.warn('FPS detection failed, using default 30fps');
+                    videoFPS = 30;
+                }
+                
+                totalFrames = Math.floor(videoPlayer.duration * videoFPS);
+
+                updateVideoInfo(file.name, videoPlayer.duration, videoFPS, totalFrames);
+                loadFrameByIndex(0);
+
+                // Update UI visibility and slider max/min
+                document.getElementById('sliderContainer').style.display = 'block';
+                document.getElementById('controlsTop').style.display = 'flex';
+                document.getElementById('frameInfo').style.display = 'block';
+                document.getElementById('playbackControls').style.display = 'flex';
+                document.getElementById('frameSlider').max = totalFrames > 0 ? totalFrames - 1 : 0;
+                
+                // Set default for range extraction to cover the whole video
+                document.getElementById('startFrame').value = 0;
+                document.getElementById('endFrame').value = totalFrames > 0 ? totalFrames - 1 : 0;
+                
+                updateEstimatedTotalFrames();
+                updateEstimatedRangeFrames(); // Update for range mode too
+                
+                showMessage('Video berhasil dimuat. Total frame perkiraan: ' + totalFrames, 'success');
+
+            } catch (error) {
+                showMessage('Error: Tidak bisa membaca atau memproses video', 'error');
+                if (currentVideoUrl) {
+                    URL.revokeObjectURL(currentVideoUrl);
+                    currentVideoUrl = null;
+                }
+            } finally {
+                document.getElementById('loadingUpload').style.display = 'none';
+            }
+        }
+
+        function updateVideoInfo(filename, duration, fps, frameCount) {
+            document.getElementById('videoInfo').style.display = 'block';
+            document.getElementById('infoFile').textContent = filename;
+            document.getElementById('infoDuration').textContent = duration.toFixed(2);
+            document.getElementById('infoFps').textContent = fps;
+            document.getElementById('infoTotalFrames').textContent = frameCount;
+        }
+        
+        function updateFrameInfo() {
+            if (!videoPlayer || isNaN(videoPlayer.currentTime)) return;
+            
+            currentFrameIndex = Math.floor(videoPlayer.currentTime * videoFPS);
+            currentFrameIndex = Math.min(Math.max(0, currentFrameIndex), totalFrames > 0 ? totalFrames - 1 : 0);
+            
+            document.getElementById('currentFrame').textContent = currentFrameIndex;
+            document.getElementById('totalFrames').textContent = totalFrames;
+            document.getElementById('frameSlider').value = currentFrameIndex;
+        }
+        
+        function updateCanvasFromVideo() {
+             canvas.width = videoPlayer.videoWidth;
+             canvas.height = videoPlayer.videoHeight;
+             ctx.drawImage(videoPlayer, 0, 0, canvas.width, canvas.height);
+             canvas.style.display = 'block';
+             document.getElementById('previewPlaceholder').style.display = 'none';
+             updateFrameInfo();
+        }
+
+        function loadFrameByIndex(frameNumber) {
+            if (!videoPlayer || totalFrames === 0) return;
+            
+            currentFrameIndex = Math.min(Math.max(0, frameNumber), totalFrames > 0 ? totalFrames - 1 : 0);
+            
+            const frameTime = currentFrameIndex / videoFPS;
+            
+            // Stop playback before seeking
+            videoPlayer.pause();
+            videoPlayer.currentTime = frameTime;
+            
+            // The 'seeked' event listener handles the canvas update
+        }
+
+        function handleSliderChange(e) {
+            const frameNum = parseInt(e.target.value);
+            // Clear any pending timeouts
+            if (frameSliderTimeout) {
+                clearTimeout(frameSliderTimeout);
+            }
+            // Debounce the frame loading
+            frameSliderTimeout = setTimeout(() => {
+                loadFrameByIndex(frameNum);
+            }, 50); // 50ms delay
+        }
+        
+        function togglePlayPause() {
+            if (!videoPlayer || totalFrames === 0) {
+                showMessage('Video belum dimuat', 'error', 2000);
+                return;
+            }
+            if (videoPlayer.paused || videoPlayer.ended) {
+                videoPlayer.style.display = 'block'; // Show video for playback
+                canvas.style.display = 'none';
+                videoPlayer.play();
+            } else {
+                videoPlayer.pause();
+                // Ensure the canvas displays the paused frame
+                videoPlayer.addEventListener('pause', updateCanvasFromVideo, { once: true });
+            }
+        }
+        
+        function seekFrame(direction) {
+            if (!videoPlayer || totalFrames === 0) {
+                showMessage('Video belum dimuat', 'error', 2000);
+                return;
+            }
+            videoPlayer.pause();
+            videoPlayer.style.display = 'none';
+            canvas.style.display = 'block';
+            
+            const newFrame = currentFrameIndex + direction;
+            loadFrameByIndex(newFrame);
+        }
+        
+        function toggleBatchInputs() {
+            const mode = document.getElementById('extractionMode').value;
+            document.getElementById('intervalInputs').style.display = mode === 'interval' ? 'grid' : 'none';
+            document.getElementById('rangeInputs').style.display = mode === 'range' ? 'grid' : 'none';
+            // Update estimated frames based on the newly selected mode
+            if (mode === 'interval') {
+                updateEstimatedTotalFrames();
+            } else {
+                updateEstimatedRangeFrames();
+            }
+        }
+
+
+        // --- Extraction Functions ---
+
+        async function extractCurrentFrame() {
+            if (!videoPlayer || totalFrames === 0) {
+                showMessage('Upload video terlebih dahulu', 'error', 2000);
+                return;
+            }
+            
+            updateCanvasFromVideo();
+
+            try {
+                const imageData = canvas.toDataURL('image/jpeg', 0.95);
+                extractedFrames.push({ data: imageData, index: currentFrameIndex }); // Simpan juga index frame
+                
+                showExtractMessage(`Frame ${currentFrameIndex} berhasil diekstrak! Total: ${extractedFrames.length}`, 'success', 3000);
+                document.getElementById('downloadBatchBtn').disabled = extractedFrames.length === 0;
+                document.getElementById('clearBatchBtn').disabled = extractedFrames.length === 0;
+                
+            } catch (error) {
+                showExtractMessage('Error saat ekstrak frame: ' + error.message, 'error');
+            }
+        }
+
+        async function batchExtract() {
+            if (!videoPlayer || totalFrames === 0) {
+                showExtractMessage('Upload video terlebih dahulu', 'error');
+                return;
+            }
+            if (isProcessing) return;
+
+            isProcessing = true;
+            extractedFrames = []; // Clear previous frames for a new batch
+            
+            document.getElementById('progressContainer').style.display = 'block';
+            document.getElementById('batchBtn').disabled = true;
+            document.getElementById('stopBatchBtn').disabled = false; // Enable stop button
+            document.getElementById('downloadBatchBtn').disabled = true;
+            document.getElementById('clearBatchBtn').disabled = true;
+            showExtractMessage('Memulai batch ekstraksi...', 'info', 0);
+            
+            let framesToExtract = [];
+            const mode = document.getElementById('extractionMode').value;
+            
+            if (mode === 'interval') {
+                const interval = parseInt(document.getElementById('intervalFrame').value) || 1;
+                for (let i = 0; i < totalFrames; i += interval) {
+                    framesToExtract.push(i);
+                }
+            } else if (mode === 'range') {
+                let start = parseInt(document.getElementById('startFrame').value) || 0;
+                let end = parseInt(document.getElementById('endFrame').value) || 0;
+                const interval = parseInt(document.getElementById('rangeInterval').value) || 1;
+                
+                // Validation and clamping to video limits
+                start = Math.max(0, Math.min(start, totalFrames - 1));
+                end = Math.min(totalFrames - 1, Math.max(end, 0));
+                
+                if (start > end || interval < 1) {
+                    showExtractMessage('Input rentang/interval tidak valid.', 'error', 5000);
+                    stopBatchExtract(true); // Stop and reset UI
+                    return;
+                }
+
+                // Logic for "dari frame sampai ke frame"
+                for (let i = start; i <= end; i += interval) {
+                    framesToExtract.push(i);
+                }
+            }
+            
+            const totalExtractCount = framesToExtract.length;
+            
+            try {
+                videoPlayer.style.display = 'none';
+                canvas.style.display = 'block';
+                videoPlayer.pause();
+                
+                for (let i = 0; i < totalExtractCount; i++) {
+                    if (!isProcessing) break; // Check for cancellation
+
+                    const frameIndex = framesToExtract[i];
+                    const frameTime = frameIndex / videoFPS;
+                    
+                    videoPlayer.currentTime = frameTime;
+
+                    await new Promise(resolve => {
+                         let resolved = false;
+                         const seekHandler = () => {
+                             if(resolved) return;
+                             resolved = true;
+                             updateCanvasFromVideo();
+                             const imageData = canvas.toDataURL('image/jpeg', 0.95);
+                             extractedFrames.push({
+                                 data: imageData,
+                                 index: frameIndex
+                             });
+                             videoPlayer.removeEventListener('seeked', seekHandler);
+                             resolve();
+                         };
+                         
+                         videoPlayer.addEventListener('seeked', seekHandler);
+                         
+                         // Fallback/immediate resolve if time is already close
+                         if (Math.abs(videoPlayer.currentTime - frameTime) < 0.01) {
+                            seekHandler();
+                         }
+                    });
+                    
+                    // Update progress
+                    const progress = Math.round(((i + 1) / totalExtractCount) * 100);
+                    document.getElementById('progressFill').style.width = progress + '%';
+                    document.getElementById('progressText').textContent = `${progress}% (${i + 1}/${totalExtractCount} frames)`;
+                    showExtractMessage(`Ekstrak: Frame ${frameIndex} (${i + 1}/${totalExtractCount})`, 'info', 0);
+                    
+                    // Throttle for stability on some browsers (optional, but safer for heavy loops)
+                    await new Promise(r => setTimeout(r, 10)); 
+                }
+
+                if (isProcessing) { // Check if not cancelled
+                    showExtractMessage(`✓ Berhasil ekstrak ${extractedFrames.length} frame! Siap didownload.`, 'success', 5000);
+                    document.getElementById('downloadBatchBtn').disabled = false;
+                    document.getElementById('clearBatchBtn').disabled = false;
+                } else {
+                    showExtractMessage(`⚠️ Proses dibatalkan. ${extractedFrames.length} frame diekstrak sebelum pembatalan.`, 'warning', 5000);
+                    document.getElementById('downloadBatchBtn').disabled = extractedFrames.length === 0;
+                    document.getElementById('clearBatchBtn').disabled = extractedFrames.length === 0;
+                }
+
+            } catch (error) {
+                showExtractMessage('Error selama batch: ' + error.message, 'error');
+            } finally {
+                stopBatchExtract(true);
+            }
+        }
+        
+        // Fungsi baru untuk membatalkan proses batch
+        function stopBatchExtract(softStop = false) {
+            isProcessing = false;
+            document.getElementById('batchBtn').disabled = false;
+            document.getElementById('stopBatchBtn').disabled = true;
+            if (!softStop) {
+                document.getElementById('progressFill').style.width = '0%';
+                document.getElementById('progressText').textContent = '0%';
+                showExtractMessage('Proses batch dibatalkan secara manual.', 'info', 3000);
+            }
+        }
+
+        // Fungsi baru untuk menghapus frame yang sudah diekstrak
+        function clearExtractedFrames() {
+            extractedFrames = [];
+            document.getElementById('downloadBatchBtn').disabled = true;
+            document.getElementById('clearBatchBtn').disabled = true;
+            document.getElementById('totalExtract').value = 0;
+            showExtractMessage('Semua frame hasil ekstrak telah dihapus dari memori.', 'info', 3000);
+        }
+
+        // --- Download Functions (Sama seperti sebelumnya) ---
+
+        function downloadFrame() {
+            if (!canvas || canvas.style.display === 'none' || totalFrames === 0) {
+                showMessage('Tidak ada frame untuk didownload', 'error');
+                return;
+            }
+            
+            const link = document.createElement('a');
+            link.download = `${videoFileName}_frame_${currentFrameIndex}.jpg`;
+            link.href = canvas.toDataURL('image/jpeg', 0.95); 
+            link.click();
+            
+            showMessage(`Frame ${currentFrameIndex} berhasil didownload.`, 'success', 3000);
+        }
+
+        async function downloadAllFrames() {
+            if (extractedFrames.length === 0) {
+                showExtractMessage('Tidak ada frame yang diekstrak', 'error');
+                return;
+            }
+            
+            showExtractMessage(`Mengkompres ${extractedFrames.length} frame ke ZIP... Mohon tunggu`, 'info', 0);
+            document.getElementById('downloadBatchBtn').disabled = true;
+            document.getElementById('clearBatchBtn').disabled = true;
+
+            const zip = new JSZip();
+            const folderName = videoFileName; 
+            
+            for (const item of extractedFrames) {
+                const blob = dataURLToBlob(item.data);
+                const filename = `${folderName}_frame_${item.index}.jpg`;
+                zip.file(filename, blob); // JSZip accepts Blob directly
+            }
+            
+            try {
+                const content = await zip.generateAsync({ type: 'blob' });
+                
+                saveAs(content, `${folderName}_frames.zip`);
+                
+                showExtractMessage(`✓ ${extractedFrames.length} frame berhasil dikompres dan didownload!`, 'success', 5000);
+
+            } catch (error) {
+                showExtractMessage('Error saat membuat/mendownload ZIP: ' + error.message, 'error');
+            } finally {
+                document.getElementById('downloadBatchBtn').disabled = false;
+                document.getElementById('clearBatchBtn').disabled = false;
+            }
+        }
+        
+        function dataURLToBlob(dataURL) {
+            const parts = dataURL.split(';base64,');
+            const contentType = parts[0].split(':')[1];
+            const raw = window.atob(parts[1]);
+            const rawLength = raw.length;
+            const uInt8Array = new Uint8Array(rawLength);
+            
+            for (let i = 0; i < rawLength; ++i) {
+                uInt8Array[i] = raw.charCodeAt(i);
+            }
+            return new Blob([uInt8Array], { type: contentType });
+        }
+        
+        // Initialize UI State
+        toggleBatchInputs(); 
+    </script>
+</body>
+</html>
