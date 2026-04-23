@@ -31,6 +31,8 @@ Extract high-quality frames from any video file with automatic rotation detectio
 
 ## 🚀 Demo / Usage
 
+You Can TRY HERE : https://learningprojectin.blogspot.com/2026/04/videoframes-capture.html
+
 1. **Open the tool** in any modern browser (Chrome, Edge, Firefox, Safari).
 2. **Upload a video** via drag & drop or file picker.
 3. The tool automatically detects video dimensions, FPS, and rotation.
